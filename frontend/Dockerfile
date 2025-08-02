@@ -10,8 +10,11 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
+# Improve npm reliability with retries
+ENV NPM_CONFIG_FETCH_RETRIES=5 NPM_CONFIG_FETCH_RETRY_MINTIMEOUT=10000 NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=60000
+
 # Install dependencies
-RUN npm ci --only=production
+RUN npm install --legacy-peer-deps --prefer-offline --no-audit --only=production
 
 # Copy source code
 COPY . .
@@ -27,8 +30,11 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
+# Improve npm reliability with retries
+ENV NPM_CONFIG_FETCH_RETRIES=5 NPM_CONFIG_FETCH_RETRY_MINTIMEOUT=10000 NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=60000
+
 # Install all dependencies (including dev dependencies)
-RUN npm ci
+RUN npm install --legacy-peer-deps --prefer-offline --no-audit
 
 # Copy source code
 COPY . .

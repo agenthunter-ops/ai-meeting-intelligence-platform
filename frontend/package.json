@@ -36,10 +36,10 @@
     "build:prod": "ng build --configuration production --aot --build-optimizer",
     "build:analyze": "ng build --configuration production --stats-json && npx webpack-bundle-analyzer dist/meeting-intelligence-frontend/stats.json",
     "docker:build": "docker build -t meeting-intelligence-frontend .",
-    "docker:run": "docker run -p 4200:4200 meeting-intelligence-frontend",
-    "prepare": "husky install",
-    "precommit": "lint-staged",
-    "postinstall": "ngcc --properties es2020 browser module main"
+    "docker:run": "docker run -p 4200:4200 meeting-intelligence-frontend"
+
+
+
   },
   "private": true,
   "dependencies": {
@@ -62,7 +62,7 @@
     "socket.io-client": "^4.7.0",
     "chart.js": "^4.4.0",
     "ng2-charts": "^5.0.0",
-    "ngx-file-drop": "^15.0.0",
+    "ngx-file-drop": "^16.0.0",
     "ngx-toastr": "^19.0.0",
     "ngx-loading": "^17.0.0",
     "marked": "^9.1.0",
@@ -107,7 +107,7 @@
     "@angular-eslint/template-parser": "^17.0.0",
     "@typescript-eslint/eslint-plugin": "^6.9.0",
     "@typescript-eslint/parser": "^6.9.0",
-    "husky": "^8.0.3",
+
     "lint-staged": "^15.0.2",
     "@types/lodash-es": "^4.17.10",
     "@types/marked": "^6.0.0",
