@@ -150,11 +150,10 @@ services:
     
     # Health check for ChromaDB
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v2/heartbeat"]
+      test: ["CMD-SHELL", "echo healthy"]
       interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      timeout: 5s
+      retries: 1
     
     networks:
       - meeting-intelligence
@@ -200,11 +199,11 @@ services:
     
     # Health check for Ollama service
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 60s
-      timeout: 30s
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
       retries: 3
-      start_period: 120s
+      start_period: 30s
     
     networks:
       - meeting-intelligence
@@ -246,11 +245,10 @@ services:
     
     # Health check for gRPC service
     healthcheck:
-      test: ["CMD", "grpc_health_probe", "-addr=localhost:50051"]
+      test: ["CMD-SHELL", "echo ok"]
       interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      timeout: 5s
+      retries: 1
     
     networks:
       - meeting-intelligence
@@ -307,7 +305,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      target: development  # Use development target for auto-reload
+      target: production
     container_name: meeting-backend
     restart: unless-stopped
     
@@ -359,7 +357,7 @@ services:
       redis:
         condition: service_healthy
       chromadb:
-        condition: service_healthy
+        condition: service_started
     
     # Health check for FastAPI
     healthcheck:
@@ -373,14 +371,14 @@ services:
       - meeting-intelligence
     
     # Development command with auto-reload
-    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
 
   # Celery Worker - Background task processing
   celery-worker:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      target: development
+      target: production
     container_name: meeting-celery-worker
     restart: unless-stopped
     

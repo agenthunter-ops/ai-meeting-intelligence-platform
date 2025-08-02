@@ -81,9 +81,12 @@
           },
           "defaultConfiguration": "production"
         },
-        "serve": {
-          "builder": "@angular-devkit/build-angular:dev-server",
-          "configurations": {
+        "serve": {"builder": "@angular-devkit/build-angular:dev-server","options": {"browserTarget": "meeting-intelligence-frontend:build:development","host": "0.0.0.0","port": 4200,"poll": 2000},"configurations": {"production": {"browserTarget": "meeting-intelligence-frontend:build:production"}}},
+    "builder": "@angular-devkit/build-angular:dev-server",
+    "options": {
+      "browserTarget": "meeting-intelligence-frontend:build"
+    },
+    "configurations": {
             "production": {
               "browserTarget": "meeting-intelligence-frontend:build:production"
             },

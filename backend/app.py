@@ -12,7 +12,10 @@ app = FastAPI(title="AI Meeting Intelligence API")
 
 app.add_middleware(CORSMiddleware, allow_origins=["*"])
 
-init_db()  # ensure SQLite tables exist
+try:
+    init_db()  # Initialize DB; may fail until Postgres is up
+except Exception as e:
+    print(f"⚠️  Database init failed during startup: {e}. Will rely on migrations or later retries.")
 
 async def save_temp(file: UploadFile) -> str:
     """Save uploaded file to temporary location and return path"""
