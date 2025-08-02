@@ -1,0 +1,147 @@
+# Simplified Docker Compose for AI Meeting Intelligence Platform
+# =============================================================
+
+networks:
+  meeting-intelligence:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  media_storage:
+    driver: local
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: meeting-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: meeting_intelligence
+      POSTGRES_USER: meeting_user
+      POSTGRES_PASSWORD: meeting_secure_password_2025
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meeting_user -d meeting_intelligence"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - meeting-intelligence
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: meeting-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - meeting-intelligence
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: meeting-backend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://meeting_user:meeting_secure_password_2025@postgres:5432/meeting_intelligence
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - DEBUG=true
+      - LOG_LEVEL=INFO
+      - SECRET_KEY=your-super-secret-key-change-in-production
+      - CORS_ORIGINS=http://localhost:4200,http://frontend:4200
+      - MEDIA_ROOT=/app/media
+      - MAX_UPLOAD_SIZE=500MB
+    ports:
+      - "8080:8000"
+    volumes:
+      - ./backend:/app
+      - media_storage:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - meeting-intelligence
+    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  # Celery Worker
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: meeting-celery-worker
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://meeting_user:meeting_secure_password_2025@postgres:5432/meeting_intelligence
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./backend:/app
+      - media_storage:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - meeting-intelligence
+    command: ["celery", "-A", "celery_config.celery_app", "worker", "--loglevel=info", "--concurrency=2"]
+
+  # Angular Frontend (simplified)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: meeting-frontend
+    restart: unless-stopped
+    environment:
+      - API_BASE_URL=http://localhost:8080
+      - NODE_ENV=development
+    ports:
+      - "4200:4200"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - meeting-intelligence
+    command: ["npm", "run", "serve:dev"] 

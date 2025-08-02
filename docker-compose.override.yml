@@ -1,0 +1,77 @@
+# Development Override Configuration
+# =================================
+
+# Development Override Configuration
+
+services:
+  # Override backend for development
+  backend:
+    build:
+      target: development
+    volumes:
+      - ./backend:/app
+      - ~/.cache/pip:/root/.cache/pip
+    environment:
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  # Override frontend for development
+  frontend:
+    build:
+      target: development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    command: ["npm", "run", "serve:dev"]
+
+  # Override celery worker for development
+  celery-worker:
+    build:
+      target: development
+    volumes:
+      - ./backend:/app
+    environment:
+      - LOG_LEVEL=DEBUG
+    command: ["celery", "-A", "celery_config.celery_app", "worker", "--loglevel=debug", "--concurrency=2"]
+
+  # Add development tools
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: meeting-pgadmin-dev
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@meeting-intelligence.com
+      PGADMIN_DEFAULT_PASSWORD: admin_password_2025
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - meeting-intelligence
+
+  # Add Flower for Celery monitoring
+  flower:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: meeting-flower-dev
+    restart: unless-stopped
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    ports:
+      - "5555:5555"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - meeting-intelligence
+    command: ["celery", "-A", "celery_config.celery_app", "flower", "--port=5555"]
+
+volumes:
+  pgadmin_data: 

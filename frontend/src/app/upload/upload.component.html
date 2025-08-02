@@ -1,0 +1,5 @@
+<input type="file" (change)="onFileSelected($event)" />
+<div *ngIf="taskId">
+  <p>Progress: {{progress}}%</p>
+  <button (click)="pollStatus()">Refresh</button>
+</div>

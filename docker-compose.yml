@@ -1,0 +1,576 @@
+# AI Meeting Intelligence Platform - Docker Compose Configuration
+# ==============================================================
+# This docker-compose file orchestrates all services required for the
+# AI Meeting Intelligence Platform including databases, message queues,
+# AI services, and the main application components.
+#
+# Services included:
+# - PostgreSQL database for structured data
+# - Redis for caching and message brokering
+# - ChromaDB for vector embeddings
+# - FastAPI backend with auto-reload
+# - Angular frontend with live development
+# - Celery workers for background processing
+# - Whisper service for speech-to-text
+# - Ollama LLM service for insights extraction
+# - Nginx reverse proxy for production routing
+
+# AI Meeting Intelligence Platform - Docker Compose Configuration
+
+# Shared network for all services to communicate
+networks:
+  meeting-intelligence:
+    driver: bridge
+
+# Persistent volumes for data storage
+volumes:
+  # Database data persistence
+  postgres_data:
+    driver: local
+  
+  # Redis data persistence  
+  redis_data:
+    driver: local
+    
+  # ChromaDB vector storage
+  chroma_data:
+    driver: local
+    
+  # File uploads and media storage
+  media_storage:
+    driver: local
+    
+  # Ollama model storage (large language models)
+  ollama_models:
+    driver: local
+
+services:
+  # ======================
+  # DATABASE SERVICES
+  # ======================
+  
+  # PostgreSQL - Primary database for structured data
+  postgres:
+    image: postgres:15-alpine
+    container_name: meeting-db
+    restart: unless-stopped
+    
+    # Environment variables for database configuration
+    environment:
+      POSTGRES_DB: meeting_intelligence
+      POSTGRES_USER: meeting_user
+      POSTGRES_PASSWORD: meeting_secure_password_2025
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    
+    # Port mapping (internal:external)
+    ports:
+      - "5432:5432"
+    
+    # Persistent volume mounting
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Custom initialization scripts
+      - ./database/init:/docker-entrypoint-initdb.d
+    
+    # Health check to ensure database is ready
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meeting_user -d meeting_intelligence"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    
+    networks:
+      - meeting-intelligence
+      
+    # Resource limits for development environment
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # Redis - Caching and message broker for Celery
+  redis:
+    image: redis:7-alpine
+    container_name: meeting-redis
+    restart: unless-stopped
+    
+    # Redis configuration
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    
+    ports:
+      - "6379:6379"
+    
+    volumes:
+      - redis_data:/data
+      # Custom Redis configuration
+      - ./infrastructure/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    
+    # Health check for Redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    
+    networks:
+      - meeting-intelligence
+      
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+
+  # ChromaDB - Vector database for semantic search
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: meeting-chroma
+    restart: unless-stopped
+    
+    # Environment variables for ChromaDB
+    environment:
+      - CHROMA_HOST=0.0.0.0
+      - CHROMA_PORT=8000
+      - CHROMA_LOG_LEVEL=INFO
+      # Persist data to disk
+      - PERSIST_DIRECTORY=/chroma/chroma
+    
+    ports:
+      - "8000:8000"
+    
+    volumes:
+      - chroma_data:/chroma/chroma
+    
+    # Health check for ChromaDB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    networks:
+      - meeting-intelligence
+      
+    # Resource allocation for vector operations
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+  # ======================
+  # AI SERVICES
+  # ======================
+  
+  # Ollama - Local LLM service for insights extraction
+  ollama:
+    image: ollama/ollama:latest
+    container_name: meeting-ollama
+    restart: unless-stopped
+    
+    # Environment configuration
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_ORIGINS=*
+    
+    ports:
+      - "11434:11434"
+    
+    volumes:
+      - ollama_models:/root/.ollama
+      # GPU access for NVIDIA cards (uncomment if available)
+      # - /usr/share/vulkan/icd.d:/usr/share/vulkan/icd.d:ro
+    
+    # GPU support (uncomment if NVIDIA GPU available)
+    # runtime: nvidia
+    # environment:
+    #   - NVIDIA_VISIBLE_DEVICES=all
+    #   - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    
+    # Health check for Ollama service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 120s
+    
+    networks:
+      - meeting-intelligence
+      
+    # Resource allocation (increase for larger models)
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2.0'
+        reservations:
+          memory: 2G
+          cpus: '1.0'
+
+  # Whisper Service - Speech-to-text transcription
+  whisper-service:
+    build:
+      context: ./whisper_service
+      dockerfile: Dockerfile
+      args:
+        - WHISPER_MODEL=base.en
+    container_name: meeting-whisper
+    restart: unless-stopped
+    
+    # Environment variables
+    environment:
+      - WHISPER_MODEL_PATH=/app/models
+      - GRPC_PORT=50051
+      - LOG_LEVEL=INFO
+    
+    ports:
+      - "50051:50051"
+    
+    volumes:
+      # Model storage for whisper models
+      - ./whisper_service/models:/app/models
+      # Temporary file processing
+      - media_storage:/app/temp
+    
+    # Health check for gRPC service
+    healthcheck:
+      test: ["CMD", "grpc_health_probe", "-addr=localhost:50051"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    networks:
+      - meeting-intelligence
+      
+    # CPU-intensive transcription workload
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+
+  # LLM Service - Wrapper for Ollama with prompt management
+  llm-service:
+    build:
+      context: ./llm_service
+      dockerfile: Dockerfile
+    container_name: meeting-llm
+    restart: unless-stopped
+    
+    # Environment configuration
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - SERVICE_PORT=8001
+      - LOG_LEVEL=INFO
+    
+    ports:
+      - "8001:8001"
+    
+    # Depends on Ollama service
+    depends_on:
+      ollama:
+        condition: service_healthy
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    networks:
+      - meeting-intelligence
+
+  # ======================
+  # APPLICATION SERVICES  
+  # ======================
+  
+  # FastAPI Backend - Main application server
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development  # Use development target for auto-reload
+    container_name: meeting-backend
+    restart: unless-stopped
+    
+    # Environment variables for backend configuration
+    environment:
+      # Database connection
+      - DATABASE_URL=postgresql://meeting_user:meeting_secure_password_2025@postgres:5432/meeting_intelligence
+      
+      # Redis connection
+      - REDIS_URL=redis://redis:6379/0
+      
+      # Celery configuration
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      
+      # ChromaDB connection
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      
+      # AI Services
+      - WHISPER_GRPC_URL=whisper-service:50051
+      - LLM_SERVICE_URL=http://llm-service:8001
+      
+      # Application settings
+      - DEBUG=true
+      - LOG_LEVEL=INFO
+      - SECRET_KEY=your-super-secret-key-change-in-production
+      - CORS_ORIGINS=http://localhost:4200,http://frontend:4200
+      
+      # File storage
+      - MEDIA_ROOT=/app/media
+      - MAX_UPLOAD_SIZE=500MB
+    
+    ports:
+      - "8080:8000"
+    
+    volumes:
+      # Source code mounting for development hot-reload
+      - ./backend:/app
+      # Media storage for uploaded files
+      - media_storage:/app/media
+      # Python package cache
+      - ~/.cache/pip:/root/.cache/pip
+    
+    # Service dependencies
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+    
+    # Health check for FastAPI
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    networks:
+      - meeting-intelligence
+    
+    # Development command with auto-reload
+    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  # Celery Worker - Background task processing
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: meeting-celery-worker
+    restart: unless-stopped
+    
+    # Same environment as backend
+    environment:
+      - DATABASE_URL=postgresql://meeting_user:meeting_secure_password_2025@postgres:5432/meeting_intelligence
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - WHISPER_GRPC_URL=whisper-service:50051
+      - LLM_SERVICE_URL=http://llm-service:8001
+      - LOG_LEVEL=INFO
+    
+    volumes:
+      - ./backend:/app
+      - media_storage:/app/media
+    
+    # Dependencies
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    
+    networks:
+      - meeting-intelligence
+    
+    # Celery worker command with concurrency
+    command: ["celery", "-A", "celery_config.celery_app", "worker", "--loglevel=info", "--concurrency=4"]
+    
+    # Resource allocation for background processing
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+
+  # Angular Frontend - Web application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development  # Development target with ng serve
+    container_name: meeting-frontend
+    restart: unless-stopped
+    
+    # Environment variables for Angular
+    environment:
+      - API_BASE_URL=http://localhost:8080
+      - WS_BASE_URL=ws://localhost:8080
+      - NODE_ENV=development
+    
+    ports:
+      - "4200:4200"
+    
+    volumes:
+      # Source code mounting for hot-reload
+      - ./frontend:/app
+      - /app/node_modules  # Anonymous volume for node_modules
+    
+    # Health check for Angular dev server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4200"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    networks:
+      - meeting-intelligence
+    
+    # Angular development server command
+    command: ["ng", "serve", "--host", "0.0.0.0", "--port", "4200", "--poll=2000"]
+
+  # ======================
+  # OPTIONAL SERVICES
+  # ======================
+  
+  # Nginx - Reverse proxy and static file serving (for production)
+  nginx:
+    image: nginx:alpine
+    container_name: meeting-nginx
+    restart: unless-stopped
+    
+    ports:
+      - "80:80"
+      - "443:443"
+    
+    volumes:
+      # Nginx configuration
+      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./infrastructure/nginx/conf.d:/etc/nginx/conf.d
+      # SSL certificates (for production)
+      - ./infrastructure/ssl:/etc/nginx/ssl
+      # Static files
+      - ./frontend/dist:/usr/share/nginx/html
+    
+    depends_on:
+      - backend
+      - frontend
+    
+    networks:
+      - meeting-intelligence
+    
+    # Only start in production profile
+    profiles:
+      - production
+
+  # Celery Beat - Periodic task scheduler
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: meeting-celery-beat
+    restart: unless-stopped
+    
+    environment:
+      - DATABASE_URL=postgresql://meeting_user:meeting_secure_password_2025@postgres:5432/meeting_intelligence
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    
+    volumes:
+      - ./backend:/app
+    
+    depends_on:
+      redis:
+        condition: service_healthy
+      celery-worker:
+        condition: service_started
+    
+    networks:
+      - meeting-intelligence
+    
+    # Celery beat command for periodic tasks
+    command: ["celery", "-A", "celery_config.celery_app", "beat", "--loglevel=info"]
+    
+    # Only start with monitoring profile
+    profiles:
+      - monitoring
+
+  # Flower - Celery monitoring dashboard
+  flower:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: meeting-flower
+    restart: unless-stopped
+    
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    
+    ports:
+      - "5555:5555"
+    
+    depends_on:
+      redis:
+        condition: service_healthy
+    
+    networks:
+      - meeting-intelligence
+    
+    # Flower monitoring command
+    command: ["celery", "-A", "celery_config.celery_app", "flower", "--port=5555"]
+    
+    # Only start with monitoring profile
+    profiles:
+      - monitoring
+
+  # ======================
+  # DEVELOPMENT TOOLS
+  # ======================
+  
+  # PostgreSQL Admin - Database management interface
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: meeting-pgadmin
+    restart: unless-stopped
+    
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@meeting-intelligence.com
+      PGADMIN_DEFAULT_PASSWORD: admin_password_2025
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
