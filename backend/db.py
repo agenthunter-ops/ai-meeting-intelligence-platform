@@ -25,7 +25,7 @@ import json
 Base = declarative_base()
 
 # Database file path - stores in project root for development
-DATABASE_URL = "sqlite:///./meeting_intelligence.db"
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./meeting_intelligence.db")
 
 # Create SQLAlchemy engine with SQLite-specific optimizations
 engine = create_engine(

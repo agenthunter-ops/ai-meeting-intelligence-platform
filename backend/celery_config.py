@@ -31,13 +31,8 @@ celery_app = Celery(
     CELERY_APP_NAME,
     broker=CELERY_BROKER_URL,
     backend=CELERY_RESULT_BACKEND,
-    include=[
-        'tasks.transcription',    # Transcription tasks
-        'tasks.insights',         # AI insight extraction tasks  
-        'tasks.embeddings',       # Vector embedding tasks
-        'tasks.notifications',    # Notification tasks
-        'tasks.cleanup'          # Cleanup and maintenance tasks
-    ]
+    # Include the main tasks module so Celery can discover tasks defined in backend/tasks.py
+    include=['tasks']
 )
 
 # Celery configuration dictionary
