@@ -1,6 +1,6 @@
 grpcio==1.59.3
 grpcio-tools==1.59.3
-whisper-cpp-python==0.2.0
+whisper-cpp-python==0.1.10
 numpy==1.24.3
 soundfile==0.12.1
 librosa==0.10.1

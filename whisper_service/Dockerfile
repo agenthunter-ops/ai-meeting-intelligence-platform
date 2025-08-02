@@ -1,14 +1,20 @@
 # Dockerfile for Whisper Service
 # =============================
 
-FROM python:3.11-slim
+FROM python:3.10-slim
 
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     curl \
+    build-essential \
+    gcc \
+    g++ \
+    make \
+    pkg-config \
+    cmake \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
