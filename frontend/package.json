@@ -30,7 +30,7 @@
     "lint:fix": "ng lint --fix",
     "format": "prettier --write \"src/**/*.{ts,html,css,scss,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,html,css,scss,json}\"",
-    "serve:dev": "ng serve --host 0.0.0.0 --port 4200 --poll=2000",
+    "serve:dev": "ng serve --configuration development --host 0.0.0.0 --port 4200 --poll=2000",
     "serve:prod": "ng serve --configuration production --host 0.0.0.0 --port 4200",
     "build:dev": "ng build --configuration development",
     "build:prod": "ng build --configuration production --aot --build-optimizer",

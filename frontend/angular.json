@@ -81,17 +81,17 @@
           },
           "defaultConfiguration": "production"
         },
-        "serve": {"builder": "@angular-devkit/build-angular:dev-server","options": {"browserTarget": "meeting-intelligence-frontend:build:development","host": "0.0.0.0","port": 4200,"poll": 2000},"configurations": {"production": {"browserTarget": "meeting-intelligence-frontend:build:production"}}},
-    "builder": "@angular-devkit/build-angular:dev-server",
-    "options": {
-      "browserTarget": "meeting-intelligence-frontend:build"
-    },
-    "configurations": {
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "buildTarget": "meeting-intelligence-frontend:build:development"
+          },
+          "configurations": {
             "production": {
-              "browserTarget": "meeting-intelligence-frontend:build:production"
+              "buildTarget": "meeting-intelligence-frontend:build:production"
             },
             "development": {
-              "browserTarget": "meeting-intelligence-frontend:build:development"
+              "buildTarget": "meeting-intelligence-frontend:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -99,7 +99,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "meeting-intelligence-frontend:build"
+            "buildTarget": "meeting-intelligence-frontend:build"
           }
         },
         "test": {

@@ -22,8 +22,8 @@ COPY . .
 # Build the application
 RUN npm run build:prod
 
-# Stage 2: Development server
-FROM node:18-alpine AS development
+# Stage 2: Development server  
+FROM node:20-alpine AS development
 
 WORKDIR /app
 
@@ -31,7 +31,9 @@ WORKDIR /app
 COPY package*.json ./
 
 # Improve npm reliability with retries
-ENV NPM_CONFIG_FETCH_RETRIES=5 NPM_CONFIG_FETCH_RETRY_MINTIMEOUT=10000 NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=60000
+ENV NPM_CONFIG_FETCH_RETRIES=5
+ENV NPM_CONFIG_FETCH_RETRY_MINTIMEOUT=10000
+ENV NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=60000
 
 # Install all dependencies (including dev dependencies)
 RUN npm install --legacy-peer-deps --prefer-offline --no-audit

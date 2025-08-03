@@ -13,4 +13,5 @@ httpx==0.25.2
 grpcio==1.59.3
 grpcio-tools==1.59.3
 kombu==5.3.4
+psycopg2-binary==2.9.9
 

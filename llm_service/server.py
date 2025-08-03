@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 import httpx
 import json
+import uvicorn
 
 app = FastAPI()
 
@@ -41,3 +42,6 @@ def extract(body: dict):
 @app.get("/health")
 def health():
     return {"status": "healthy", "service": "llm-service"}
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8001)

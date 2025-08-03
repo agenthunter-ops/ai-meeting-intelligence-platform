@@ -24,24 +24,33 @@ import json
 # SQLAlchemy declarative base imported from models to ensure single metadata
 from models import Base
 
-# Database file path - stores in project root for development
+# Database configuration - supports both SQLite (dev) and PostgreSQL (production)
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./meeting_intelligence.db")
 
-# Create SQLAlchemy engine with SQLite-specific optimizations
-engine = create_engine(
-    DATABASE_URL,
-    # Enable connection pooling for better performance
-    pool_size=20,
-    max_overflow=0,
-    # SQLite-specific settings for better concurrent access
-    connect_args={
-        "check_same_thread": False,  # Allow multiple threads
-        "timeout": 20,               # Connection timeout in seconds
-        "isolation_level": None,     # Enable autocommit mode
-    },
-    # Enable SQL query logging in development
-    echo=False  # Set to True for SQL debugging
-)
+# Create SQLAlchemy engine with database-specific optimizations
+if DATABASE_URL.startswith("sqlite"):
+    # SQLite-specific configuration
+    engine = create_engine(
+        DATABASE_URL,
+        pool_size=20,
+        max_overflow=0,
+        connect_args={
+            "check_same_thread": False,  # Allow multiple threads
+            "timeout": 20,               # Connection timeout in seconds
+            "isolation_level": None,     # Enable autocommit mode
+        },
+        echo=False  # Set to True for SQL debugging
+    )
+else:
+    # PostgreSQL configuration
+    engine = create_engine(
+        DATABASE_URL,
+        pool_size=10,
+        max_overflow=20,
+        pool_pre_ping=True,  # Verify connections before use
+        pool_recycle=3600,   # Recycle connections after 1 hour
+        echo=False  # Set to True for SQL debugging
+    )
 
 # Session factory for database operations
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -83,24 +92,28 @@ def init_db():
     # Create all tables defined in models.py
     Base.metadata.create_all(bind=engine)
     
-    # Apply SQLite-specific optimizations
-    with engine.connect() as conn:
-        # Enable Write-Ahead Logging for better concurrent access
-        conn.exec_driver_sql("PRAGMA journal_mode=WAL")
+    # Apply database-specific optimizations
+    if DATABASE_URL.startswith("sqlite"):
+        # SQLite-specific optimizations
+        with engine.connect() as conn:
+            # Enable Write-Ahead Logging for better concurrent access
+            conn.exec_driver_sql("PRAGMA journal_mode=WAL")
 
-        # Increase cache size to 64MB for better performance
-        conn.exec_driver_sql("PRAGMA cache_size=-64000")
+            # Increase cache size to 64MB for better performance
+            conn.exec_driver_sql("PRAGMA cache_size=-64000")
 
-        # Enable foreign key constraints
-        conn.exec_driver_sql("PRAGMA foreign_keys=ON")
+            # Enable foreign key constraints
+            conn.exec_driver_sql("PRAGMA foreign_keys=ON")
 
-        # Set synchronous mode to NORMAL for balance of safety and performance
-        conn.exec_driver_sql("PRAGMA synchronous=NORMAL")
+            # Set synchronous mode to NORMAL for balance of safety and performance
+            conn.exec_driver_sql("PRAGMA synchronous=NORMAL")
 
-        # Set busy timeout to handle concurrent access
-        conn.exec_driver_sql("PRAGMA busy_timeout=30000")
-    
-    print("✅ Database initialized successfully with optimizations")
+            # Set busy timeout to handle concurrent access
+            conn.exec_driver_sql("PRAGMA busy_timeout=30000")
+        print("✅ Database initialized successfully with SQLite optimizations")
+    else:
+        # PostgreSQL is already optimized by default
+        print("✅ Database initialized successfully with PostgreSQL")
 
 def get_task_status(task_id: str) -> Optional[Dict[str, Any]]:
     """
