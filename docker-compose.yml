@@ -423,42 +423,30 @@ services:
           memory: 1G
           cpus: '1.0'
 
-  # Angular Frontend - Web application
+  # Simple Frontend - Static HTML application
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
-      target: development  # Development target with ng serve
+      dockerfile: Dockerfile.simple
     container_name: meeting-frontend
     restart: unless-stopped
     
-    # Environment variables for Angular
-    environment:
-      - API_BASE_URL=http://localhost:8080
-      - WS_BASE_URL=ws://localhost:8080
-      - NODE_ENV=development
-    
     ports:
-      - "4200:4200"
+      - "4200:80"
     
-    volumes:
-      # Source code mounting for hot-reload
-      - ./frontend:/app
-      - /app/node_modules  # Anonymous volume for node_modules
-    
-    # Health check for Angular dev server
+    # Health check for nginx
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4200"]
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 30s
     
     networks:
       - meeting-intelligence
     
-    # Angular development server command
-    command: ["ng", "serve", "--host", "0.0.0.0", "--port", "4200", "--poll=2000"]
+    depends_on:
+      - backend
 
   # ======================
   # OPTIONAL SERVICES

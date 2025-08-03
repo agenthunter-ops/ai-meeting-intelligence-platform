@@ -35,8 +35,10 @@ ENV NPM_CONFIG_FETCH_RETRIES=5
 ENV NPM_CONFIG_FETCH_RETRY_MINTIMEOUT=10000
 ENV NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=60000
 
-# Install all dependencies (including dev dependencies)
-RUN npm install --legacy-peer-deps --prefer-offline --no-audit
+# Install all dependencies (including dev dependencies) with clean install
+RUN npm cache clean --force && \
+    rm -f package-lock.json && \
+    npm install --legacy-peer-deps --no-audit --network-timeout=100000
 
 # Copy source code
 COPY . .

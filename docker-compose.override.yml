@@ -16,16 +16,11 @@ services:
       - LOG_LEVEL=DEBUG
     command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
-  # Override frontend for development
+  # Override frontend for development - using simple static version
   frontend:
     build:
-      target: development
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      - NODE_ENV=development
-    command: ["npm", "run", "serve:dev"]
+      dockerfile: Dockerfile.simple
+    # No volumes needed for static version
 
   # Override celery worker for development
   celery-worker:
