@@ -371,7 +371,14 @@ services:
       - meeting-intelligence
     
     # Development command with auto-reload
-    command: ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000"]
+    # The backend image copies the service code into /app, so the FastAPI
+    # application module is available directly as ``app`` rather than
+    # ``backend.app``. Using the wrong module path causes the container to
+    # exit immediately with ``ModuleNotFoundError: No module named 'backend'``
+    # which leaves the service unhealthy. Running uvicorn against ``app:app``
+    # matches the layout inside the container and allows the health check to
+    # succeed.
+    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
 
   # Celery Worker - Background task processing
   celery-worker:
