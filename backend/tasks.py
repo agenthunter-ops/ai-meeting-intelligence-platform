@@ -21,12 +21,12 @@ import httpx
 import grpc
 
 from celery import shared_task
-from celery_config import BaseTask
-from db import (
+from .celery_config import BaseTask
+from .db import (
     update_task_status, save_meeting_segments, save_meeting_insights,
     SessionLocal
 )
-from models import Meeting, Task
+from .models import Meeting, Task
 
 # Configure logging
 logger = logging.getLogger(__name__)

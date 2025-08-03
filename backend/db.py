@@ -119,7 +119,7 @@ def get_task_status(task_id: str) -> Optional[Dict[str, Any]]:
     """
     db = SessionLocal()
     try:
-        from models import Task  # Import here to avoid circular imports
+        from .models import Task  # Import here to avoid circular imports
         
         task = db.query(Task).filter(Task.id == task_id).first()
         if not task:
@@ -157,7 +157,7 @@ def update_task_status(task_id: str, state: str, progress: int = 0,
     """
     db = SessionLocal()
     try:
-        from models import Task
+        from .models import Task
         
         # Find existing task or create new one
         task = db.query(Task).filter(Task.id == task_id).first()
@@ -203,7 +203,7 @@ def save_meeting_segments(meeting_id: int, segments: list):
     """
     db = SessionLocal()
     try:
-        from models import Segment
+        from .models import Segment
         
         # Create segment objects
         segment_objects = []
@@ -251,7 +251,7 @@ def save_meeting_insights(meeting_id: int, insights: Dict[str, Any]):
     """
     db = SessionLocal()
     try:
-        from models import Insight
+        from .models import Insight
         
         # Save different types of insights
         insight_objects = []
@@ -262,7 +262,7 @@ def save_meeting_insights(meeting_id: int, insights: Dict[str, Any]):
                 meeting_id=meeting_id,
                 type="action_item",
                 content=item["text"],
-                metadata=json.dumps({
+                metadata_json=json.dumps({
                     "assignee": item.get("assignee"),
                     "due_date": item.get("due_date"),
                     "priority": item.get("priority", "medium")
@@ -277,7 +277,7 @@ def save_meeting_insights(meeting_id: int, insights: Dict[str, Any]):
                 meeting_id=meeting_id,
                 type="decision",
                 content=decision["text"],
-                metadata=json.dumps({
+                metadata_json=json.dumps({
                     "impact": decision.get("impact", "medium"),
                     "rationale": decision.get("rationale")
                 }),
@@ -292,7 +292,7 @@ def save_meeting_insights(meeting_id: int, insights: Dict[str, Any]):
                 meeting_id=meeting_id,
                 type="sentiment",
                 content=f"Overall sentiment: {sentiment['overall']}",
-                metadata=json.dumps({
+                metadata_json=json.dumps({
                     "score": sentiment["score"],
                     "positive_ratio": sentiment.get("positive_ratio", 0.0),
                     "negative_ratio": sentiment.get("negative_ratio", 0.0)
@@ -332,7 +332,7 @@ def search_meetings(query: str, limit: int = 10) -> list:
     """
     db = SessionLocal()
     try:
-        from models import Meeting, Segment
+        from .models import Meeting, Segment
         
         # Use SQLite FTS for fast text search across segments
         # This requires FTS5 virtual table (can be set up in init_db)
@@ -384,7 +384,7 @@ def check_db_health() -> Dict[str, Any]:
         result = db.execute("SELECT 1").fetchone()
         
         # Get table counts for monitoring
-        from models import Meeting, Task, Segment, Insight
+        from .models import Meeting, Task, Segment, Insight
         
         meeting_count = db.query(Meeting).count()
         task_count = db.query(Task).count()

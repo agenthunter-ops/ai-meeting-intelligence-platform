@@ -13,8 +13,9 @@ Key Features:
 - Custom validators for business logic
 """
 
-from pydantic import BaseModel, Field, validator, root_validator
-from typing import Optional, List, Dict, Any, Union
+from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic import ValidationInfo
+from typing import Optional, List, Dict, Any, Union, Literal
 from datetime import datetime
 from enum import Enum
 import re
@@ -63,15 +64,12 @@ class BaseSchema(BaseModel):
     Base schema with common configuration for all Pydantic models.
     Provides consistent serialization and validation settings.
     """
-    class Config:
-        # Allow ORM mode for SQLAlchemy integration
-        orm_mode = True
-        # Use enum values instead of names in JSON
-        use_enum_values = True
-        # Validate field assignments
-        validate_assignment = True
-        # Allow population by field name or alias
-        allow_population_by_field_name = True
+    model_config = ConfigDict(
+        from_attributes=True,
+        use_enum_values=True,
+        validate_assignment=True,
+        populate_by_name=True,
+    )
 
 # Upload and Task Management Schemas
 class UploadRequest(BaseSchema):
@@ -105,23 +103,25 @@ class UploadRequest(BaseSchema):
         description="When the meeting took place"
     )
     
-    @validator('title')
-    def validate_title(cls, v):
+    @field_validator('title')
+    @classmethod
+    def validate_title(cls, v: str) -> str:
         """Ensure title is not just whitespace"""
         if not v.strip():
             raise ValueError('Title cannot be empty or just whitespace')
         return v.strip()
-    
-    @validator('attendees')
-    def validate_attendees(cls, v):
+
+    @field_validator('attendees')
+    @classmethod
+    def validate_attendees(cls, v: Optional[List[str]]) -> Optional[List[str]]:
         """Clean and validate attendee list"""
         if v is None:
             return v
         # Remove empty strings and strip whitespace
         cleaned = [name.strip() for name in v if name.strip()]
         # Remove duplicates while preserving order
-        seen = set()
-        unique_attendees = []
+        seen: set[str] = set()
+        unique_attendees: List[str] = []
         for attendee in cleaned:
             if attendee.lower() not in seen:
                 seen.add(attendee.lower())
@@ -182,6 +182,12 @@ class TaskStatus(BaseSchema):
         description="Estimated time to completion in seconds"
     )
 
+
+# Alias for backward compatibility
+class StatusResponse(TaskStatus):
+    """Response model for task status queries."""
+    pass
+
 # Meeting and Content Schemas
 class SegmentBase(BaseSchema):
     """
@@ -199,10 +205,12 @@ class SegmentBase(BaseSchema):
         description="Transcription confidence score"
     )
     
-    @validator('end_time')
-    def validate_end_time(cls, v, values):
+    @field_validator('end_time')
+    @classmethod
+    def validate_end_time(cls, v: float, info: ValidationInfo) -> float:
         """Ensure end_time is after start_time"""
-        if 'start_time' in values and v <= values['start_time']:
+        start = info.data.get('start_time') if info.data else None
+        if start is not None and v <= start:
             raise ValueError('end_time must be greater than start_time')
         return v
 
@@ -243,17 +251,17 @@ class ActionItemInsight(InsightBase):
     Specialized schema for action item insights.
     Includes assignee, due date, and priority information.
     """
-    type: InsightType = Field(default=InsightType.ACTION_ITEM, const=True)
+    type: Literal[InsightType.ACTION_ITEM] = Field(default=InsightType.ACTION_ITEM)
     assignee: Optional[str] = Field(default=None, description="Person assigned to the task")
     due_date: Optional[datetime] = Field(default=None, description="Task due date")
     priority: str = Field(
         default="medium",
-        regex="^(low|medium|high|urgent)$",
+        pattern="^(low|medium|high|urgent)$",
         description="Task priority level"
     )
     status: str = Field(
         default="open",
-        regex="^(open|in_progress|completed|cancelled)$",
+        pattern="^(open|in_progress|completed|cancelled)$",
         description="Current task status"
     )
 
@@ -262,10 +270,10 @@ class DecisionInsight(InsightBase):
     Specialized schema for decision insights.
     Includes impact level and rationale.
     """
-    type: InsightType = Field(default=InsightType.DECISION, const=True)
+    type: Literal[InsightType.DECISION] = Field(default=InsightType.DECISION)
     impact: str = Field(
         default="medium",
-        regex="^(low|medium|high|critical)$",
+        pattern="^(low|medium|high|critical)$",
         description="Decision impact level"
     )
     rationale: Optional[str] = Field(default=None, description="Decision reasoning")
@@ -298,8 +306,9 @@ class MeetingBase(BaseSchema):
         description="Meeting duration in minutes"
     )
     
-    @validator('title')
-    def validate_title(cls, v):
+    @field_validator('title')
+    @classmethod
+    def validate_title(cls, v: str) -> str:
         """Clean and validate meeting title"""
         return v.strip()
 
@@ -350,7 +359,7 @@ class SearchRequest(BaseSchema):
     # Search options
     search_type: str = Field(
         default="hybrid",
-        regex="^(text|semantic|hybrid)$",
+        pattern="^(text|semantic|hybrid)$",
         description="Type of search to perform"
     )
     
@@ -389,21 +398,23 @@ class SearchRequest(BaseSchema):
         description="Number of results to skip"
     )
     
-    @validator('query')
-    def validate_query(cls, v):
+    @field_validator('query')
+    @classmethod
+    def validate_query(cls, v: str) -> str:
         """Clean and validate search query"""
         # Remove excessive whitespace
         cleaned = re.sub(r'\s+', ' ', v.strip())
         if not cleaned:
             raise ValueError('Query cannot be empty')
         return cleaned
-    
-    @validator('date_to')
-    def validate_date_range(cls, v, values):
+
+    @field_validator('date_to')
+    @classmethod
+    def validate_date_range(cls, v: Optional[datetime], info: ValidationInfo) -> Optional[datetime]:
         """Ensure date_to is after date_from"""
-        if v and 'date_from' in values and values['date_from']:
-            if v <= values['date_from']:
-                raise ValueError('date_to must be after date_from')
+        start = info.data.get('date_from') if info.data else None
+        if v and start and v <= start:
+            raise ValueError('date_to must be after date_from')
         return v
 
 class SearchResult(BaseSchema):
@@ -425,7 +436,7 @@ class SearchResult(BaseSchema):
     # Match information
     match_type: str = Field(
         ...,
-        regex="^(title|content|insight)$",
+        pattern="^(title|content|insight)$",
         description="Where the match was found"
     )
     
@@ -479,7 +490,7 @@ class MeetingAnalytics(BaseSchema):
     # Sentiment analysis
     overall_sentiment: Optional[str] = Field(
         default=None,
-        regex="^(positive|neutral|negative)$",
+        pattern="^(positive|neutral|negative)$",
         description="Overall meeting sentiment"
     )
     sentiment_score: Optional[float] = Field(
@@ -503,7 +514,7 @@ class SystemHealth(BaseSchema):
     """
     status: str = Field(
         ...,
-        regex="^(healthy|degraded|unhealthy)$",
+        pattern="^(healthy|degraded|unhealthy)$",
         description="Overall system status"
     )
     

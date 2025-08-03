@@ -243,7 +243,7 @@ class BaseTask(celery_app.Task):
         Called when task fails. Updates database with error information
         and sends notifications if needed.
         """
-        from db import update_task_status
+        from .db import update_task_status
         
         # Update task status in database
         error_message = f"{exc.__class__.__name__}: {str(exc)}"
@@ -261,7 +261,7 @@ class BaseTask(celery_app.Task):
         
         # Send failure notification for critical tasks
         if self.name.startswith('tasks.transcription') or self.name.startswith('tasks.insights'):
-            from tasks.notifications import send_task_failure_notification
+            from .tasks.notifications import send_task_failure_notification
             send_task_failure_notification.delay(
                 task_id=task_id,
                 task_name=self.name,
@@ -272,7 +272,7 @@ class BaseTask(celery_app.Task):
         """
         Called when task succeeds. Updates database with success status.
         """
-        from db import update_task_status
+        from .db import update_task_status
         
         # Update task status in database
         update_task_status(
@@ -289,7 +289,7 @@ class BaseTask(celery_app.Task):
         """
         Called when task is retried. Updates database with retry status.
         """
-        from db import update_task_status
+        from .db import update_task_status
         
         # Update task status in database  
         update_task_status(
@@ -310,7 +310,7 @@ class BaseTask(celery_app.Task):
             progress (int): Progress percentage (0-100)
             current_stage (str): Description of current processing stage
         """
-        from db import update_task_status
+        from .db import update_task_status
         
         update_task_status(
             task_id=task_id,
