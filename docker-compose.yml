@@ -344,7 +344,7 @@ services:
     
     volumes:
       # Source code mounting for development hot-reload
-      - ./backend:/app
+      - .:/app
       # Media storage for uploaded files
       - media_storage:/app/media
       # Python package cache
@@ -395,7 +395,7 @@ services:
       - LOG_LEVEL=INFO
     
     volumes:
-      - ./backend:/app
+      - .:/app
       - media_storage:/app/media
     
     # Dependencies
@@ -411,7 +411,7 @@ services:
       - meeting-intelligence
     
     # Celery worker command with concurrency
-    command: ["celery", "-A", "celery_config.celery_app", "worker", "--loglevel=info", "--concurrency=4"]
+    command: ["celery", "-A", "backend.celery_config.celery_app", "worker", "--loglevel=info", "--concurrency=4"]
     
     # Resource allocation for background processing
     deploy:
@@ -510,7 +510,7 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
     
     volumes:
-      - ./backend:/app
+      - .:/app
     
     depends_on:
       redis:
@@ -522,7 +522,7 @@ services:
       - meeting-intelligence
     
     # Celery beat command for periodic tasks
-    command: ["celery", "-A", "celery_config.celery_app", "beat", "--loglevel=info"]
+    command: ["celery", "-A", "backend.celery_config.celery_app", "beat", "--loglevel=info"]
     
     # Only start with monitoring profile
     profiles:
@@ -550,9 +550,12 @@ services:
     
     networks:
       - meeting-intelligence
+
+    volumes:
+      - .:/app
     
     # Flower monitoring command
-    command: ["celery", "-A", "celery_config.celery_app", "flower", "--port=5555"]
+    command: ["celery", "-A", "backend.celery_config.celery_app", "flower", "--port=5555"]
     
     # Only start with monitoring profile
     profiles:
