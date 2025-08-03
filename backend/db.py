@@ -86,19 +86,19 @@ def init_db():
     # Apply SQLite-specific optimizations
     with engine.connect() as conn:
         # Enable Write-Ahead Logging for better concurrent access
-        conn.execute("PRAGMA journal_mode=WAL")
-        
+        conn.exec_driver_sql("PRAGMA journal_mode=WAL")
+
         # Increase cache size to 64MB for better performance
-        conn.execute("PRAGMA cache_size=-64000")
-        
+        conn.exec_driver_sql("PRAGMA cache_size=-64000")
+
         # Enable foreign key constraints
-        conn.execute("PRAGMA foreign_keys=ON")
-        
+        conn.exec_driver_sql("PRAGMA foreign_keys=ON")
+
         # Set synchronous mode to NORMAL for balance of safety and performance
-        conn.execute("PRAGMA synchronous=NORMAL")
-        
+        conn.exec_driver_sql("PRAGMA synchronous=NORMAL")
+
         # Set busy timeout to handle concurrent access
-        conn.execute("PRAGMA busy_timeout=30000")
+        conn.exec_driver_sql("PRAGMA busy_timeout=30000")
     
     print("✅ Database initialized successfully with optimizations")
 

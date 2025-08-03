@@ -34,6 +34,7 @@ async def save_temp(file: UploadFile) -> str:
 
 @app.post("/api/upload", response_model=UploadResponse)
 async def upload(
+    background: BackgroundTasks,
     file: UploadFile = File(...),
     title: Optional[str] = None,
     meeting_type: Optional[str] = "general",
@@ -62,13 +63,13 @@ async def upload(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
-@app.get("/api/status/{task_id}", response_model=StatusResponse)
+@app.get("/api/status/{task_id}", response_model=TaskStatus)
 def status(task_id: str):
     """Get task status"""
     status_data = get_task_status(task_id)
     if not status_data:
         raise HTTPException(status_code=404, detail="Task not found")
-    return StatusResponse(**status_data)
+    return TaskStatus(**status_data)
 
 @app.get("/")
 def read_root():

@@ -692,7 +692,7 @@ class Insight(Base, TimestampMixin):
         if self.metadata_json and isinstance(self.metadata_json, dict):
             return self.metadata_json.get(key, default)
         return default
-    
+
     def set_metadata_value(self, key: str, value):
         """Set a specific value in metadata JSON"""
         if not self.metadata_json:
