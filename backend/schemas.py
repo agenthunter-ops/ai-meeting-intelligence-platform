@@ -14,7 +14,7 @@ Key Features:
 """
 
 from pydantic import BaseModel, Field, validator, root_validator
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, List, Dict, Any, Union, Literal
 from datetime import datetime
 from enum import Enum
 import re
@@ -243,17 +243,20 @@ class ActionItemInsight(InsightBase):
     Specialized schema for action item insights.
     Includes assignee, due date, and priority information.
     """
-    type: InsightType = Field(default=InsightType.ACTION_ITEM, const=True)
+    type: Literal[InsightType.ACTION_ITEM] = Field(
+        default=InsightType.ACTION_ITEM,
+        description="Insight type"
+    )
     assignee: Optional[str] = Field(default=None, description="Person assigned to the task")
     due_date: Optional[datetime] = Field(default=None, description="Task due date")
     priority: str = Field(
         default="medium",
-        regex="^(low|medium|high|urgent)$",
+        pattern="^(low|medium|high|urgent)$",
         description="Task priority level"
     )
     status: str = Field(
         default="open",
-        regex="^(open|in_progress|completed|cancelled)$",
+        pattern="^(open|in_progress|completed|cancelled)$",
         description="Current task status"
     )
 
@@ -262,10 +265,13 @@ class DecisionInsight(InsightBase):
     Specialized schema for decision insights.
     Includes impact level and rationale.
     """
-    type: InsightType = Field(default=InsightType.DECISION, const=True)
+    type: Literal[InsightType.DECISION] = Field(
+        default=InsightType.DECISION,
+        description="Insight type"
+    )
     impact: str = Field(
         default="medium",
-        regex="^(low|medium|high|critical)$",
+        pattern="^(low|medium|high|critical)$",
         description="Decision impact level"
     )
     rationale: Optional[str] = Field(default=None, description="Decision reasoning")
@@ -350,7 +356,7 @@ class SearchRequest(BaseSchema):
     # Search options
     search_type: str = Field(
         default="hybrid",
-        regex="^(text|semantic|hybrid)$",
+        pattern="^(text|semantic|hybrid)$",
         description="Type of search to perform"
     )
     
@@ -425,7 +431,7 @@ class SearchResult(BaseSchema):
     # Match information
     match_type: str = Field(
         ...,
-        regex="^(title|content|insight)$",
+        pattern="^(title|content|insight)$",
         description="Where the match was found"
     )
     
@@ -479,7 +485,7 @@ class MeetingAnalytics(BaseSchema):
     # Sentiment analysis
     overall_sentiment: Optional[str] = Field(
         default=None,
-        regex="^(positive|neutral|negative)$",
+        pattern="^(positive|neutral|negative)$",
         description="Overall meeting sentiment"
     )
     sentiment_score: Optional[float] = Field(
@@ -503,7 +509,7 @@ class SystemHealth(BaseSchema):
     """
     status: str = Field(
         ...,
-        regex="^(healthy|degraded|unhealthy)$",
+        pattern="^(healthy|degraded|unhealthy)$",
         description="Overall system status"
     )
     
