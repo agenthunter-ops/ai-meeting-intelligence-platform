@@ -75,7 +75,8 @@
     "@ngrx/router-store": "^17.0.0",
 
     "intersection-observer": "^0.12.2",
-    "resize-observer-polyfill": "^1.5.1"
+    "resize-observer-polyfill": "^1.5.1",
+    "fast-uri": "^2.3.0"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^17.0.0",
