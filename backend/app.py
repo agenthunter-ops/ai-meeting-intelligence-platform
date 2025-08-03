@@ -1,12 +1,12 @@
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Optional
 from schemas import UploadResponse, TaskStatus, UploadRequest
 from tasks import process_meeting_upload
 from db import init_db, get_task_status
 import aiofiles
 import os
 import uuid
-from typing import Optional
 
 app = FastAPI(title="AI Meeting Intelligence API")
 
@@ -16,6 +16,34 @@ try:
     init_db()  # Initialize DB; may fail until Postgres is up
 except Exception as e:
     print(f"⚠️  Database init failed during startup: {e}. Will rely on migrations or later retries.")
+
+def validate_audio_file(file: UploadFile) -> None:
+    """Validate that the uploaded file is a supported audio format"""
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No filename provided")
+    
+    # Check file extension
+    allowed_extensions = {'.mp3', '.wav', '.m4a', '.flac', '.ogg', '.aac'}
+    file_extension = os.path.splitext(file.filename)[1].lower()
+    
+    if file_extension not in allowed_extensions:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Unsupported file type. Allowed formats: {', '.join(allowed_extensions)}"
+        )
+    
+    # Check content type if available
+    if file.content_type:
+        allowed_content_types = {
+            'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 
+            'audio/mp4', 'audio/m4a', 'audio/flac', 'audio/ogg',
+            'audio/aac', 'audio/x-aac'
+        }
+        if file.content_type not in allowed_content_types:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported content type: {file.content_type}"
+            )
 
 async def save_temp(file: UploadFile) -> str:
     """Save uploaded file to temporary location and return path"""
@@ -42,6 +70,9 @@ async def upload(
 ):
     """Upload audio file for processing"""
     try:
+        # Validate file type
+        validate_audio_file(file)
+        
         # Save uploaded file
         file_path = await save_temp(file)
         
