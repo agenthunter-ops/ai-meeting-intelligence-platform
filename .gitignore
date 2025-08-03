@@ -1,0 +1,16 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.eggs/
+*.log
+.env
+.env.*
+temp_uploads/
+
+# Node artifacts
+frontend/node_modules/
+frontend/dist/
+
+# Misc
+*.sqlite3

@@ -108,12 +108,12 @@ class Task(Base, TimestampMixin):
     )
     
     # Processing metadata
-    task_metadata = Column(
+    metadata_json = Column(
+        'metadata',
         JSON,
         nullable=True,
         comment="Additional task metadata (file info, settings, etc.)"
     )
-    
     # Estimated completion time
     eta = Column(
         DateTime(timezone=True),
@@ -611,12 +611,11 @@ class Insight(Base, TimestampMixin):
     
     # Structured metadata for different insight types
     metadata_json = Column(
+        'metadata',
         JSON,
         nullable=True,
         comment="Type-specific structured data as JSON"
     )
-    
-    # Source information
     source_segment_id = Column(
         Integer,
         ForeignKey('segments.id', ondelete='SET NULL'),
