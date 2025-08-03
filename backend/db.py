@@ -86,19 +86,19 @@ def init_db():
     # Apply SQLite-specific optimizations
     with engine.connect() as conn:
         # Enable Write-Ahead Logging for better concurrent access
-        conn.execute("PRAGMA journal_mode=WAL")
-        
+        conn.exec_driver_sql("PRAGMA journal_mode=WAL")
+
         # Increase cache size to 64MB for better performance
-        conn.execute("PRAGMA cache_size=-64000")
-        
+        conn.exec_driver_sql("PRAGMA cache_size=-64000")
+
         # Enable foreign key constraints
-        conn.execute("PRAGMA foreign_keys=ON")
-        
+        conn.exec_driver_sql("PRAGMA foreign_keys=ON")
+
         # Set synchronous mode to NORMAL for balance of safety and performance
-        conn.execute("PRAGMA synchronous=NORMAL")
-        
+        conn.exec_driver_sql("PRAGMA synchronous=NORMAL")
+
         # Set busy timeout to handle concurrent access
-        conn.execute("PRAGMA busy_timeout=30000")
+        conn.exec_driver_sql("PRAGMA busy_timeout=30000")
     
     print("✅ Database initialized successfully with optimizations")
 
@@ -262,7 +262,7 @@ def save_meeting_insights(meeting_id: int, insights: Dict[str, Any]):
                 meeting_id=meeting_id,
                 type="action_item",
                 content=item["text"],
-                metadata=json.dumps({
+                metadata_json=json.dumps({
                     "assignee": item.get("assignee"),
                     "due_date": item.get("due_date"),
                     "priority": item.get("priority", "medium")
@@ -277,7 +277,7 @@ def save_meeting_insights(meeting_id: int, insights: Dict[str, Any]):
                 meeting_id=meeting_id,
                 type="decision",
                 content=decision["text"],
-                metadata=json.dumps({
+                metadata_json=json.dumps({
                     "impact": decision.get("impact", "medium"),
                     "rationale": decision.get("rationale")
                 }),
@@ -292,7 +292,7 @@ def save_meeting_insights(meeting_id: int, insights: Dict[str, Any]):
                 meeting_id=meeting_id,
                 type="sentiment",
                 content=f"Overall sentiment: {sentiment['overall']}",
-                metadata=json.dumps({
+                metadata_json=json.dumps({
                     "score": sentiment["score"],
                     "positive_ratio": sentiment.get("positive_ratio", 0.0),
                     "negative_ratio": sentiment.get("negative_ratio", 0.0)

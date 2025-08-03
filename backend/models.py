@@ -108,7 +108,7 @@ class Task(Base, TimestampMixin):
     )
     
     # Processing metadata
-    metadata = Column(
+    task_metadata = Column(
         JSON,
         nullable=True,
         comment="Additional task metadata (file info, settings, etc.)"
@@ -610,7 +610,7 @@ class Insight(Base, TimestampMixin):
     )
     
     # Structured metadata for different insight types
-    metadata = Column(
+    metadata_json = Column(
         JSON,
         nullable=True,
         comment="Type-specific structured data as JSON"
@@ -690,16 +690,16 @@ class Insight(Base, TimestampMixin):
     
     def get_metadata_value(self, key: str, default=None):
         """Get a specific value from metadata JSON"""
-        if self.metadata and isinstance(self.metadata, dict):
-            return self.metadata.get(key, default)
+        if self.metadata_json and isinstance(self.metadata_json, dict):
+            return self.metadata_json.get(key, default)
         return default
-    
+
     def set_metadata_value(self, key: str, value):
         """Set a specific value in metadata JSON"""
-        if not self.metadata:
-            self.metadata = {}
-        if isinstance(self.metadata, dict):
-            self.metadata[key] = value
+        if not self.metadata_json:
+            self.metadata_json = {}
+        if isinstance(self.metadata_json, dict):
+            self.metadata_json[key] = value
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert model to dictionary for JSON serialization"""
@@ -709,7 +709,7 @@ class Insight(Base, TimestampMixin):
             'type': self.type,
             'content': self.content,
             'confidence': self.confidence,
-            'metadata': self.metadata,
+            'metadata': self.metadata_json,
             'source_segment_id': self.source_segment_id,
             'priority': self.priority,
             'status': self.status,
