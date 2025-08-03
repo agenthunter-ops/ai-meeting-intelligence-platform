@@ -1,8 +1,8 @@
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from .schemas import UploadResponse, TaskStatus, UploadRequest
-from .tasks import process_meeting_upload
-from .db import init_db, get_task_status
+from schemas import UploadResponse, TaskStatus, UploadRequest
+from tasks import process_meeting_upload
+from db import init_db, get_task_status
 import aiofiles
 import os
 import uuid
