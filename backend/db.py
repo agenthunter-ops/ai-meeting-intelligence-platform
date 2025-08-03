@@ -21,8 +21,8 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 import json
 
-# SQLAlchemy declarative base - all ORM models inherit from this
-Base = declarative_base()
+# SQLAlchemy declarative base imported from models to ensure single metadata
+from .models import Base
 
 # Database file path - stores in project root for development
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./meeting_intelligence.db")
