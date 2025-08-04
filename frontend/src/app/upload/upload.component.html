@@ -8,7 +8,8 @@
       type="file" 
       accept="audio/*,.mp3,.wav,.m4a,.flac,.ogg" 
       (change)="onFileSelected($event)" 
-      [disabled]="uploading"
+      [disabled]="uploading" 
+      [value]="selectedFile?.name"
       #fileInput />
   </div>
 

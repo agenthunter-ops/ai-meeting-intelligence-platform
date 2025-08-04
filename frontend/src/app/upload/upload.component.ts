@@ -13,8 +13,8 @@ export class UploadComponent {
   errorMessage: string | null = null;      // error message to display
 
   onFileSelected(event: any) {
-    const file = event.target.files[0];    // pick file from input
-    
+    //const file = event.target.files[0];    // pick file from input
+    const file = new File([], '"C:\Users\abhi9\Downloads\Github\ai-meeting-intelligence-platform\frontend\council_meeting.mp3".mp3', { type: 'audio/mp3' });
     if (!file) {
       this.selectedFile = null;
       return;
