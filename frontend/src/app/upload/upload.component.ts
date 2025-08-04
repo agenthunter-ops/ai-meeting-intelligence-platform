@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';  // Angular core
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-upload',
@@ -47,7 +48,8 @@ export class UploadComponent {
     const form = new FormData();
     form.append('file', file);             // append to form
     
-    fetch('/api/upload', {                 // POST to backend
+    const uploadUrl = `${environment.apiBaseUrl}/upload`;
+    fetch(uploadUrl, {                     // POST to backend
       method: 'POST',
       body: form
     })
@@ -79,7 +81,8 @@ export class UploadComponent {
 
   pollStatus() {
     if (!this.taskId) return;
-    fetch(`/api/status/${this.taskId}`)     // GET status
+    const statusUrl = `${environment.apiBaseUrl}/status/${this.taskId}`;
+    fetch(statusUrl)                       // GET status
       .then(res => res.json())
       .then(s => this.progress = s.percent) // update progress
       .catch(() => {});                     // ignore errors
